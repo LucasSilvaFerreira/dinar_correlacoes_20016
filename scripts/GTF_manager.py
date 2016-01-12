@@ -15,8 +15,7 @@ class Transcript():
         self.exon_count = len(exons_array)
         self.transcript_size = self.__get_transcrip_size()
         #print self.transcript_name, self.transcript_size
-        self.__named_tuple_attrs = namedtuple('attr', ' '.join(self.__attr_list) )# Creating named tuple
-        self.attrs = self.__parse_attrs() # aqui eu deixarei todos os atributos dos genes
+        self.attrs = self.__parse_attrs() # aqui eu deixarei todos os atributos dos genes em um dict
 
 
     def exon_size(self, one_exon_in_array):
@@ -27,18 +26,17 @@ class Transcript():
         return sum([self.exon_size(one_exon_in_array=exon) for exon in self.exons])
 
     def __parse_attrs(self):
-        print self.exons[-1][-1]
+
         fields_to_parse = {field.strip(' ').split(' ')[0]:field.strip(' ').split(' ')[1]
-                           for field in self.exons[-1][-1].split(';')} # get the last exon to parse attrs
-        hash_to_load_namedtuple = {}
+                           for field in self.exons[-1][-1].strip(';').split(';')} # get the last exon to parse attrs
+        hash_to_load_return = {}
         for attr in self.__attr_list:
             if attr in fields_to_parse:
-                hash_to_load_namedtuple[attr] = fields_to_parse[attr]
+                hash_to_load_return[attr] = fields_to_parse[attr]
             else:
-                hash_to_load_namedtuple[attr] = None
+                hash_to_load_return[attr] = None
 
-        return self.__named_tuple_attrs(**hash_to_load_namedtuple)
-
+        return hash_to_load_return
 
 
 class Gene_content():
@@ -55,6 +53,16 @@ class Gene_content():
         self.transcripts_ids = transcripts_id_hash #sorted_dict
         self.__child_transcript_possible_fields = attr_transcript_field #hash com os valores que os transcritos vao possuir
         self.transcripts_list = self.__parse_transcripts()
+        self.number_of_transcripts = len(self.transcripts_list)
+
+
+    def get_transcripts_ids(self):
+        out_ids_trans = []
+        #return list(set(
+        for trans_line in self.transcripts_ids.iterkeys():
+            print trans_line
+            #out_ids_trans.append(re.search('transcript_id "(\S*)"', trans_line[-1]).group(1))
+        # return list(set(out_ids_trans))
 
 
 
@@ -63,9 +71,6 @@ class Gene_content():
         return {Transcript(transcript_name=ts_key,
                            exons_array=ts_values_array,
                            attr_list=self.__child_transcript_possible_fields) for ts_key, ts_values_array in self.transcripts_ids.iteritems()}
-
-
-
 
 
 class GTF_manager():
@@ -82,7 +87,7 @@ class GTF_manager():
         for line in tqdm(self.gtf_file_open):
             if line:
                 # Populating attrs list
-                for attr_line in line[-1].split(';'):
+                for attr_line in line[-1].strip(';').split(';'): # retirar ultima ocorrencia de ponto-virgula e splitar por ponto-virgula
                     self.__attr_list[attr_line.strip().split(" ")[0]] = ''
                 # Parsing lines
                 try:
@@ -96,7 +101,7 @@ class GTF_manager():
                     raise IOError("\n The Line: \n{line}\n don't have a regular gene_id field!".format(line=line))
 
         gene_list_to_return = {}
-        print 'Converting gene to proper format'
+        print '\n \n Converting gene to proper format\n'
         for key_gene, gene_value in hash_gtf_file.iteritems():
 
             gene_id = key_gene
@@ -130,6 +135,9 @@ class GTF_manager():
 
         print '\n Parsing finished...'
 
+    def gene_list(self):
+        return [gene_content  for gene_content in self.genes_hash.itervalues()]
+
 
 
     def print_attrs_fields(self):
@@ -142,8 +150,15 @@ class GTF_manager():
 def main():
     '''Main Function Description'''
 
-    gtf_object = GTF_manager(gtf_file='/home/lucas/PycharmProjects/dinar_correlacoes_20016/dados/results/genes-2.gtf')
-    gtf_object.attrs_fields()
+    meu_gtf = GTF_manager(gtf_file='/home/lucas/PycharmProjects/dinar_correlacoes_20016/dados/results/genes-2.gtf')
+    #gtf_object.print_attrs_fields()
+    for gene_id in meu_gtf.gene_list():
+        for transcrito in gene_id.transcripts_list:
+            print transcrito.transcript_name, transcrito.transcript_size, transcrito.attrs['gene_type']
+
+        # print x.gene_id, x.gene_info,  x.number_of_transcripts
+        # print 'Transcritos:'
+        # x.get_transcripts_ids() #essa porra se nega a ser vista pelo python
 
 if __name__ == '__main__':
     sys.exit(main())
