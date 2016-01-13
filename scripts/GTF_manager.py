@@ -5,7 +5,7 @@ import re
 from tqdm import tqdm
 from pybedtools import BedTool, tempfiles
 import copy
-
+from scipy import log2
 
 class Transcript():
     def __init__(self, transcript_name, exons_array, attr_list):
@@ -289,7 +289,7 @@ def main():
             print x
             print y
             print pearsonr(x, y)[0]
-            pair_protein.append(pearsonr(x, y)[0])
+            pair_protein.append(pearsonr(normalization(x), normalization(y))[0])
             pc_slot[chave_pc] = ''
 
 
@@ -297,7 +297,7 @@ def main():
         #print 'lncrnas', 'distance:', vizinhos[-1]
         x = map(float, lncrnas_hash[vizinhos[3]])
         y = map(float, pc_hash[vizinhos[9]])
-        pair_lncrnas.append(pearsonr(x, y)[0])
+        pair_lncrnas.append(pearsonr(normalization(x), normalization(y))[0])
 
 
 
@@ -322,6 +322,13 @@ def main():
     #     print transcrito.transcript_name, transcrito.transcript_length
     #     print transcrito.attrs
     #     print transcrito.get_bed6()
+
+
+def normalization(vector):
+    total = sum([log2(y+1) for y in vector])
+    return [log2(1+n)/total for n in vector]
+
+
 
 if __name__ == '__main__':
     sys.exit(main())
